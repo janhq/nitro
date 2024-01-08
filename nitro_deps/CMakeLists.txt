@@ -61,6 +61,15 @@ ExternalProject_Add(
 )
 
 ExternalProject_Add(
+	googletest
+	GIT_REPOSITORY https://github.com/google/googletest.git
+	GIT_TAG v1.14.0
+    CMAKE_ARGS 
+	-DCMAKE_PREFIX_PATH=${THIRD_PARTY_INSTALL_PATH}
+	-DCMAKE_INSTALL_PREFIX=${THIRD_PARTY_INSTALL_PATH}
+)
+
+ExternalProject_Add(
     drogon
     GIT_REPOSITORY https://github.com/drogonframework/drogon
     GIT_TAG v1.8.6
@@ -78,6 +87,8 @@ ExternalProject_Add(
 	# -DCMAKE_FIND_ROOT_PATH=${THIRD_PARTY_INSTALL_PATH} # To set the dir (that will be used to force the look for .a)
 	-DCMAKE_INSTALL_PREFIX=${THIRD_PARTY_INSTALL_PATH}
 )
+
+
 
 # Fix trantor cmakelists to link c-ares on Windows
 if(WIN32)
@@ -97,5 +108,6 @@ if(ZLIB_USE_STATIC_LIBS)
     add_dependencies(drogon zlib)
 endif()
 # target_link_libraries(<your-target> ...)
+
 
 

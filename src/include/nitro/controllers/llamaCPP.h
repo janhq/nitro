@@ -6,24 +6,27 @@
 
 #pragma once
 
-#include "log.h"
-#include "utils/nitro_utils.h"
-#include <drogon/HttpController.h>
+
+#include "nitro/utils/nitro_utils.h"
+#include "nitro/utils/json.hpp"
 #include <fstream>
 
 // External
-#include "clip.h"
-#include "common.h"
+#include <drogon/HttpController.h>
+#include "llama_interface/log.h"
+#include "llama_interface/common.h"
+#include "llama_interface/clip.h"
 #include "llama.h"
+#include "ggml.h"
 
-#include "stb_image.h"
+
+
 
 #ifndef NDEBUG
 // crash the server in debug mode, otherwise send an http 500 error
 #define CPPHTTPLIB_NO_EXCEPTIONS 1
 #endif
 
-#include "utils/json.hpp"
 
 // auto generated files (update with ./deps.sh)
 
