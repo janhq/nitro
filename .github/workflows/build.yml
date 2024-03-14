@@ -24,6 +24,7 @@ on:
         "!docs/**",
         "!.gitignore",
         "!README.md",
+        "!nitro-node/**",
       ]
   pull_request:
     types: [opened, synchronize, reopened]
@@ -44,6 +45,7 @@ on:
         "!docs/**",
         "!.gitignore",
         "!README.md",
+        "!nitro-node/**",
       ]
   workflow_dispatch:
 
@@ -113,7 +115,7 @@ jobs:
             }
             # Get the latest release tag from GitHub API
             LATEST_TAG=$(get_latest_tag)
-            
+
             # Remove the 'v' and append the build number to the version
             NEW_VERSION="${LATEST_TAG#v}-${GITHUB_RUN_NUMBER}"
             echo "New version: $NEW_VERSION"
@@ -336,7 +338,7 @@ jobs:
         run: |
           ./install_deps.sh
           mkdir build && cd build
-          cmake -DWHISPER_COREML=1 -DNITRO_VERSION=${{ needs.set-nitro-version.outputs.version }} .. 
+          cmake -DWHISPER_COREML=1 -DNITRO_VERSION=${{ needs.set-nitro-version.outputs.version }} ..
           CC=gcc-8 make -j $(sysctl -n hw.ncpu)
           ls -la
 
@@ -415,7 +417,7 @@ jobs:
         run: |
           ./install_deps.sh
           mkdir build && cd build
-          cmake -DNITRO_VERSION=${{ needs.set-nitro-version.outputs.version }} -DLLAMA_METAL=OFF .. 
+          cmake -DNITRO_VERSION=${{ needs.set-nitro-version.outputs.version }} -DLLAMA_METAL=OFF ..
           CC=gcc-8 make -j $(sysctl -n hw.ncp)
           ls -la
 
