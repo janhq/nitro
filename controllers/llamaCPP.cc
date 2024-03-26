@@ -542,33 +542,42 @@ void llamaCPP::ModelStatus(
 }
 
 void llamaCPP::LoadModel(
-    const HttpRequestPtr& req,
-    std::function<void(const HttpResponsePtr&)>&& callback) {
-  if (llama.model_loaded_external) {
-    LOG_INFO << "model loaded";
-    Json::Value jsonResp;
-    jsonResp["message"] = "Model already loaded";
-    auto resp = nitro_utils::nitroHttpJsonResponse(jsonResp);
-    resp->setStatusCode(drogon::k409Conflict);
-    callback(resp);
+    const HttpRequestPtr &req,
+    std::function<void(const HttpResponsePtr &)> &&callback) {
+
+  if(llama.model_loaded_external.load(std::memory_order_acquire)){
+    ModelLoadedResponse(callback);
     return;
   }
-
+  
+  bool modelLoadedSuccess;
   const auto& jsonBody = req->getJsonObject();
-  if (!LoadModelImpl(jsonBody)) {
-    // Error occurred during model loading
-    Json::Value jsonResp;
-    jsonResp["message"] = "Failed to load model";
-    auto resp = nitro_utils::nitroHttpJsonResponse(jsonResp);
-    resp->setStatusCode(drogon::k500InternalServerError);
-    callback(resp);
-  } else {
-    // Model loaded successfully
-    Json::Value jsonResp;
-    jsonResp["message"] = "Model loaded successfully";
-    auto resp = nitro_utils::nitroHttpJsonResponse(jsonResp);
-    callback(resp);
+
+  {
+    std::lock_guard lck{load_model_mutex};
+    if (llama.model_loaded_external.load(std::memory_order_relaxed)) {
+      ModelLoadedResponse(callback);
+      return;
+    }
+    modelLoadedSuccess = LoadModelImpl(jsonBody);
+    llama.model_loaded_external.store(modelLoadedSuccess, std::memory_order_release);
   }
+  if (modelLoadedSuccess) {
+      // Model loaded successfully
+      Json::Value jsonResp;
+      jsonResp["message"] = "Model loaded successfully";
+      auto resp = nitro_utils::nitroHttpJsonResponse(jsonResp);
+      callback(resp);
+      return;
+  }
+
+  // Error occurred during model loading
+  Json::Value jsonResp;
+  jsonResp["message"] = "Failed to load model";
+  auto resp = nitro_utils::nitroHttpJsonResponse(jsonResp);
+  resp->setStatusCode(drogon::k500InternalServerError);
+  callback(resp);
+
 }
 
 bool llamaCPP::LoadModelImpl(std::shared_ptr<Json::Value> jsonBody) {
@@ -662,7 +671,6 @@ bool llamaCPP::LoadModelImpl(std::shared_ptr<Json::Value> jsonBody) {
 
   queue = new trantor::ConcurrentTaskQueue(llama.params.n_parallel, "llamaCPP");
 
-  llama.model_loaded_external = true;
 
   LOG_INFO << "Started background task here!";
   backgroundThread = std::thread(&llamaCPP::BackgroundTask, this);
@@ -690,4 +698,13 @@ void llamaCPP::StopBackgroundTask() {
       backgroundThread.join();
     }
   }
+}
+void llamaCPP::ModelLoadedResponse(
+    std::function<void(const HttpResponsePtr&)> callback) {
+  LOG_INFO << "model loaded";
+  Json::Value jsonResp;
+  jsonResp["message"] = "Model already loaded";
+  auto resp = nitro_utils::nitroHttpJsonResponse(jsonResp);
+  resp->setStatusCode(drogon::k409Conflict);
+  callback(resp);
 }

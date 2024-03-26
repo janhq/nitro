@@ -88,10 +88,12 @@ class llamaCPP : public drogon::HttpController<llamaCPP>,
   std::atomic<int> no_of_chats = 0;
   int clean_cache_threshold;
   std::string grammar_file_content;
+  std::mutex load_model_mutex;
 
   /**
    * Queue to handle the inference tasks
    */
+
   trantor::ConcurrentTaskQueue* queue;
 
   bool LoadModelImpl(std::shared_ptr<Json::Value> jsonBody);
@@ -103,5 +105,7 @@ class llamaCPP : public drogon::HttpController<llamaCPP>,
   void WarmupModel();
   void BackgroundTask();
   void StopBackgroundTask();
+  void ModelLoadedResponse(
+      std::function<void(const HttpResponsePtr&)> function);
 };
 };  // namespace inferences
