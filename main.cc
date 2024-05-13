@@ -3,6 +3,7 @@
 #include <drogon/HttpAppFramework.h>
 #include <drogon/drogon.h>
 #include <iostream>
+#include <openssl/ssl.h> // for SSL_CTX
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <libgen.h> // for dirname()
@@ -22,6 +23,9 @@ int main(int argc, char *argv[]) {
   std::string host = "127.0.0.1";
   int port = 3928;
   std::string uploads_folder_path;
+  std::string cert_path;
+  std::string key_path;
+  bool use_https = false;
 
   // Number of nitro threads
   if (argc > 1) {
@@ -43,6 +47,21 @@ int main(int argc, char *argv[]) {
     uploads_folder_path = argv[4];
   }
 
+  // Check for HTTPS argument
+  if (argc > 5) {
+    use_https = std::atoi(argv[5]); // Convert string argument to bool
+  }
+
+  // Check for cert path argument
+  if (argc > 6) {
+    cert_path = argv[6];
+  }
+
+  // Check for key path argument
+  if (argc > 7) {
+    key_path = argv[7];
+  }
+
   int logical_cores = std::thread::hardware_concurrency();
   int drogon_thread_num = std::max(thread_num, logical_cores);
   nitro_utils::nitro_logo();
@@ -53,6 +72,15 @@ int main(int argc, char *argv[]) {
 #endif
   LOG_INFO << "Server started, listening at: " << host << ":" << port;
   LOG_INFO << "Please load your model";
+
+  // Enable SSL if use_https is true
+  if (use_https) {
+    drogon::HttpAppFramework::instance().setSSLFiles(cert_path, key_path);
+    drogon::HttpAppFramework::instance().setSSLContextInitCallback([](SSL_CTX *ctx) {
+      SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, nullptr); // Disable peer certificate verification
+    });
+  }
+
   drogon::app().addListener(host, port);
   drogon::app().setThreadNum(drogon_thread_num);
   if (!uploads_folder_path.empty()) {
