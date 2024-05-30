@@ -1,6 +1,7 @@
 #pragma once
 #include <drogon/HttpClient.h>
 #include <drogon/HttpResponse.h>
+#include <trantor/utils/Logger.h>
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -24,9 +25,16 @@
 #include <mach-o/dyld.h>
 #endif
 
+namespace {
+constexpr static auto kLlamaEngine = "cortex.llamacpp";
+constexpr static auto kPythonRuntimeEngine = "cortex.python";
+constexpr static auto kTensorrtLlmEngine = "cortex.tensorrt-llm";
+}  // namespace
+
 namespace cortex_utils {
 constexpr static auto kLlamaLibPath = "/engines/cortex.llamacpp";
 constexpr static auto kPythonRuntimeLibPath = "/engines/cortex.python";
+constexpr static auto kTensorrtLlmLibPath = "/engines/cortex.tensorrt-llm";
 
 inline std::string models_folder = "./models";
 
@@ -333,5 +341,20 @@ inline std::string GetCurrentPath() {
 #endif
 }
 #endif
+
+inline std::string GetEnginePathByName(std::string_view engine_name) {
+  if (engine_name == kLlamaEngine) {
+    return kLlamaLibPath;
+  }
+  if (engine_name == kPythonRuntimeEngine) {
+    return kPythonRuntimeLibPath;
+  }
+  if (engine_name == kTensorrtLlmEngine) {
+    return kTensorrtLlmLibPath;
+  }
+
+  LOG_ERROR << "Invalid engine: " << engine_name;
+  return "";
+};
 
 }  // namespace cortex_utils

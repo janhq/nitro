@@ -13,10 +13,6 @@
 using namespace inferences;
 using json = nlohmann::json;
 namespace inferences {
-namespace {
-constexpr static auto kLlamaEngine = "cortex.llamacpp";
-constexpr static auto kPythonRuntimeEngine = "cortex.python";
-}  // namespace
 
 server::server(){
 
@@ -47,7 +43,7 @@ void server::ChatCompletion(
   auto json_body = req->getJsonObject();
   bool is_stream = (*json_body).get("stream", false).asBool();
   auto q = std::make_shared<SyncQueue>();
-  std::get<EngineI*>(engines_[engine_type].engine)
+  std::get<CortexTensorrtLlmEngineI*>(engines_[engine_type].engine)
       ->HandleChatCompletion(json_body,
                              [q](Json::Value status, Json::Value res) {
                                q->push(std::make_pair(status, res));
@@ -228,8 +224,11 @@ void server::FineTuning(
     LOG_INFO << "Loaded engine: " << engine_type;
   }
 
+  LOG_INFO << "Cameron 1";
   LOG_TRACE << "Start to fine-tuning";
+  LOG_INFO << "Cameron 2";
   auto& en = std::get<CortexPythonEngineI*>(engines_[engine_type].engine);
+  LOG_INFO << "Cameron 3";
   if (en->IsSupported("HandlePythonFileExecutionRequest")) {
     en->HandlePythonFileExecutionRequest(
         req->getJsonObject(),
@@ -259,12 +258,6 @@ void server::LoadModel(const HttpRequestPtr& req,
   if (engines_.find(engine_type) == engines_.end()) {
     // TODO(sang) we cannot run cortex.llamacpp and cortex.tensorrt-llm at the same time.
     // So need an unload engine machanism to handle.
-    auto get_engine_path = [](std::string_view e) {
-      if (e == kLlamaEngine) {
-        return cortex_utils::kLlamaLibPath;
-      }
-      return cortex_utils::kLlamaLibPath;
-    };
 
     try {
       if (engine_type == kLlamaEngine) {
@@ -276,8 +269,12 @@ void server::LoadModel(const HttpRequestPtr& req,
         }
       }
 
+      if (engine_type == kTensorrtLlmEngine) {
+        // TODO(cameron) check for GPU architecture and number of GPUs
+      }
+
       std::string abs_path =
-          cortex_utils::GetCurrentPath() + get_engine_path(engine_type);
+          cortex_utils::GetCurrentPath() + cortex_utils::GetEnginePathByName(engine_type);
       engines_[engine_type].dl =
           std::make_unique<cortex_cpp::dylib>(abs_path, "engine");
 
@@ -294,13 +291,13 @@ void server::LoadModel(const HttpRequestPtr& req,
     }
 
     auto func =
-        engines_[engine_type].dl->get_function<EngineI*()>("get_engine");
+        engines_[engine_type].dl->get_function<CortexTensorrtLlmEngineI*()>("get_engine");
     engines_[engine_type].engine = func();
     LOG_INFO << "Loaded engine: " << engine_type;
   }
 
   LOG_TRACE << "Load model";
-  auto& en = std::get<EngineI*>(engines_[engine_type].engine);
+  auto& en = std::get<CortexTensorrtLlmEngineI*>(engines_[engine_type].engine);
   en->LoadModel(req->getJsonObject(), [cb = std::move(callback)](
                                           Json::Value status, Json::Value res) {
     auto resp = cortex_utils::nitroHttpJsonResponse(res);
