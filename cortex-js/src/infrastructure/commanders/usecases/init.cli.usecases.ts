@@ -75,7 +75,8 @@ export class InitCliUsecases {
       process.exit(1);
     }
 
-    if (engine !== 'cortex.llamacpp') await this.installAcceleratedEngine();
+    if (engine !== 'cortex.llamacpp')
+      await this.installAcceleratedEngine('latest', engine);
 
     configs.initialized = true;
     await this.fileManagerService.writeConfigFile(configs);
@@ -348,7 +349,7 @@ export class InitCliUsecases {
       exit(1);
     }
 
-    console.log(`Downloading ONNX engine file ${toDownloadAsset.name}`);
+    console.log(`Downloading engine file ${toDownloadAsset.name}`);
     const dataFolderPath = await this.fileManagerService.getDataFolderPath();
     const engineDir = join(dataFolderPath, 'cortex-cpp');
 
