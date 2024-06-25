@@ -111,7 +111,7 @@ export class ModelsController {
   })
   @Get('download/:modelId(*)')
   downloadModel(@Param('modelId') modelId: string) {
-    return this.modelsUsecases.downloadModel(modelId);
+    return this.modelsUsecases.pullModel(modelId);
   }
 
   @ApiOperation({
